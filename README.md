@@ -21,3 +21,11 @@ A high-performance movement system for Roblox that emulates the classic physics 
 | **X** | Launch Rocket (for Rocket Jumping) |
 | **ON/OFF Button** | Toggle the movement system |
 | **DESTROY Button** | Reverts physics to default and removes the script |
+
+## Installation (Execute)
+
+To run the script in any executor, use the following code:
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Gorinch/Source-movement-in-roblox/refs/heads/main/Main.lua"))()
+```
