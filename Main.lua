@@ -84,6 +84,26 @@ local function playLand()
     end
 end
 
+-- Game modes
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local gameModes = {}
+
+if isMobile then
+    gameModes = {
+        "default (mobile)",
+        "no grenades (mobile)",
+        "hard (mobile)"
+    }
+else
+    gameModes = {
+        "default (PC)",
+        "no grenades (PC)",
+        "hard (PC)"
+    }
+end
+
+local currentModeIndex = 1
+
 -- GUI
 local function createGui()
     local g = Instance.new("ScreenGui", gui)
@@ -91,8 +111,8 @@ local function createGui()
     g.Name = "SourceDBG"
 
     local destroy = Instance.new("TextButton", g)
-    destroy.Size = UDim2.new(0, 90, 0, 40)
-    destroy.Position = UDim2.new(1, -100, 1, -110)
+    destroy.Size = UDim2.new(0, 70, 0, 30)
+    destroy.Position = UDim2.new(0, 10, 1, -130)
     destroy.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
     destroy.Text = "DESTROY"
 
@@ -110,8 +130,8 @@ local function createGui()
     end)
 
     local toggle = Instance.new("TextButton", g)
-    toggle.Size = UDim2.new(0, 90, 0, 40)
-    toggle.Position = UDim2.new(1, -100, 1, -60)
+    toggle.Size = UDim2.new(0, 70, 0, 30)
+    toggle.Position = UDim2.new(0, 10, 1, -90)
     toggle.BackgroundColor3 = Color3.fromRGB(80, 255, 130)
     toggle.Text = "ON"
 
@@ -120,12 +140,21 @@ local function createGui()
         if scriptEnabled then
             toggle.BackgroundColor3 = Color3.fromRGB(80, 255, 130)
             toggle.Text = "ON"
+            if isMobile then
+                local jumpBtn = g:FindFirstChild("JumpButton")
+                if jumpBtn then jumpBtn.Visible = true end
+            end
         else
             toggle.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
             toggle.Text = "OFF"
             humanoid.WalkSpeed = 16
             humanoid.JumpPower = 50
             velocity = Vector3.new()
+            
+            if isMobile then
+                local jumpBtn = g:FindFirstChild("JumpButton")
+                if jumpBtn then jumpBtn.Visible = false end
+            end
             
             for _, sound in pairs(root:GetChildren()) do
                 if sound:IsA("Sound") then
@@ -139,6 +168,142 @@ local function createGui()
             end
         end
     end)
+
+    local modeButton = Instance.new("TextButton", g)
+    modeButton.Size = UDim2.new(0, 150, 0, 30)
+    modeButton.Position = UDim2.new(0, 10, 1, -50)
+    modeButton.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+    modeButton.Text = "Mode: " .. gameModes[currentModeIndex]
+    modeButton.TextScaled = true
+
+    modeButton.MouseButton1Click:Connect(function()
+        currentModeIndex = currentModeIndex + 1
+        if currentModeIndex > #gameModes then
+            currentModeIndex = 1
+        end
+        modeButton.Text = "Mode: " .. gameModes[currentModeIndex]
+    end)
+
+    -- Mobile grenade button
+    if isMobile then
+        local grenadeButton = Instance.new("TextButton", g)
+        grenadeButton.Size = UDim2.new(0, 80, 0, 80)
+        grenadeButton.Position = UDim2.new(1, -90, 0.5, -40)
+        grenadeButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        grenadeButton.Text = "GRENADE"
+        grenadeButton.TextScaled = true
+        grenadeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        grenadeButton.Font = Enum.Font.SourceSansBold
+        grenadeButton.Name = "GrenadeButton"
+        
+        local corner = Instance.new("UICorner", grenadeButton)
+        corner.CornerRadius = UDim.new(0.5, 0)
+
+        grenadeButton.MouseButton1Click:Connect(function()
+            -- Проверка режима для гранат
+            local currentMode = gameModes[currentModeIndex]
+            if currentMode == "no grenades (mobile)" or currentMode == "hard (mobile)" then
+                return  -- Гранаты отключены в этих режимах
+            end
+            
+            if not scriptEnabled then return end
+            
+            local cam = workspace.CurrentCamera
+            local direction = cam.CFrame.LookVector
+            local startPos = root.Position + direction * 3
+            
+            local rocket = Instance.new("Part")
+            rocket.Name = "Rocket"
+            rocket.Size = Vector3.new(0.5, 0.5, 2)
+            rocket.BrickColor = BrickColor.new("Really red")
+            rocket.Material = Enum.Material.Neon
+            rocket.Anchored = false
+            rocket.CanCollide = false
+            rocket.CFrame = CFrame.lookAt(startPos, startPos + direction)
+            rocket.Parent = workspace
+            
+            local attachment0 = Instance.new("Attachment", rocket)
+            attachment0.Position = Vector3.new(0, 0, -1)
+            local attachment1 = Instance.new("Attachment", rocket)
+            local trail = Instance.new("Trail", rocket)
+            trail.Attachment0 = attachment0
+            trail.Attachment1 = attachment1
+            trail.Color = ColorSequence.new(Color3.fromRGB(255, 165, 0))
+            trail.Transparency = NumberSequence.new{
+                NumberSequenceKeypoint.new(0, 0.3),
+                NumberSequenceKeypoint.new(1, 1)
+            }
+            trail.Lifetime = 0.3
+            trail.MinLength = 0
+            
+            rocket.AssemblyLinearVelocity = direction * 150
+            
+            local explodeSound = Instance.new("Sound")
+            explodeSound.SoundId = "rbxassetid://90586353104830"
+            explodeSound.Volume = 1.0
+            explodeSound.PlaybackSpeed = 1
+            
+            local shootSound = Instance.new("Sound", root)
+            shootSound.SoundId = "rbxassetid://2156366946"
+            shootSound.Volume = 1.0
+            shootSound.PlaybackSpeed = 1.0
+            shootSound:Play()
+            game.Debris:AddItem(shootSound, 2)
+            
+            local connection
+            connection = rocket.Touched:Connect(function(hit)
+                if hit and not hit:IsDescendantOf(character) then
+                    local explosionPos = rocket.Position
+                    
+                    local dist = (root.Position - explosionPos).Magnitude
+                    local shouldPush = dist <= rocketBlastRadius
+                    
+                    explodeSound.Parent = workspace
+                    explodeSound:Play()
+                    game.Debris:AddItem(explodeSound, 2)
+                    
+                    local explosion = Instance.new("Explosion")
+                    explosion.Position = explosionPos
+                    explosion.BlastPressure = 0
+                    explosion.BlastRadius = rocketBlastRadius
+                    explosion.Parent = workspace
+                    
+                    if shouldPush then
+                        local dir = (root.Position - explosionPos).Unit
+                        local forceMagnitude = 80
+                        velocity = velocity + dir * forceMagnitude
+                    end
+                    
+                    rocket:Destroy()
+                    connection:Disconnect()
+                end
+            end)
+            
+            game.Debris:AddItem(rocket, 5)
+        end)
+        
+        -- Mobile jump button
+        local jumpButton = Instance.new("TextButton", g)
+        jumpButton.Size = UDim2.new(0, 80, 0, 80)
+        jumpButton.Position = UDim2.new(1, -90, 1, -90)
+        jumpButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        jumpButton.Text = "JUMP"
+        jumpButton.TextScaled = true
+        jumpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        jumpButton.Font = Enum.Font.SourceSansBold
+        jumpButton.Name = "JumpButton"
+        
+        local jumpCorner = Instance.new("UICorner", jumpButton)
+        jumpCorner.CornerRadius = UDim.new(0.5, 0)
+        
+        jumpButton.MouseButton1Down:Connect(function()
+            spaceHeld = true
+        end)
+        
+        jumpButton.MouseButton1Up:Connect(function()
+            spaceHeld = false
+        end)
+    end
 end
 
 createGui()
@@ -161,6 +326,11 @@ task.spawn(function()
         end
     end
 end)
+
+-- Mobile jump state tracking
+if isMobile then
+    -- Removed automatic jump detection - now using manual button only
+end
 
 local function grounded()
     local rayParams = RaycastParams.new()
@@ -234,16 +404,32 @@ local function process(dt)
 
     local input = Vector3.new()
 
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then input += fwd end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then input -= fwd end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then input -= right end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then input += right end
+    -- Input handling for PC and Mobile
+    if isMobile then
+        -- Mobile: use MoveDirection from humanoid
+        local moveVector = humanoid.MoveDirection
+        if moveVector.Magnitude > 0 then
+            input = moveVector
+        end
+    else
+        -- PC: keyboard input
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then input += fwd end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then input -= fwd end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then input -= right end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then input += right end
+    end
 
     if input.Magnitude > 0 then
         input = input.Unit
     end
 
     moveDir = input
+
+    -- Adjust max air speed for hard mode
+    local currentMaxAirSpeed = cfg.maxAirSpeed
+    if gameModes[currentModeIndex] == "hard (PC)" or gameModes[currentModeIndex] == "hard (mobile)" then
+        currentMaxAirSpeed = cfg.maxAirSpeed * 0.5  -- Половина максимальной скорости в воздухе
+    end
 
     if isGrounded then
         applyFriction(dt)
@@ -266,7 +452,7 @@ local function process(dt)
             velocity = Vector3.new(velocity.X, 0, velocity.Z)
         end
     else
-        accel(moveDir, cfg.maxAirSpeed, cfg.airAccel, dt)
+        accel(moveDir, currentMaxAirSpeed, cfg.airAccel, dt)
         velocity += Vector3.new(0, -cfg.gravity * dt, 0)
     end
 
@@ -276,7 +462,14 @@ end
 UserInputService.InputBegan:Connect(function(i)
     if i.KeyCode == Enum.KeyCode.Space then
         spaceHeld = true
-    elseif i.KeyCode == Enum.KeyCode.X and scriptEnabled then
+    elseif i.KeyCode == Enum.KeyCode.X and scriptEnabled and not isMobile then
+        -- Проверка режима для гранат
+        local currentMode = gameModes[currentModeIndex]
+        if currentMode == "no grenades (PC)" or currentMode == "no grenades (mobile)" or 
+           currentMode == "hard (PC)" or currentMode == "hard (mobile)" then
+            return  -- Гранаты отключены в этих режимах
+        end
+        
         local cam = workspace.CurrentCamera
         local direction = cam.CFrame.LookVector
         local startPos = root.Position + direction * 3
