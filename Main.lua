@@ -84,7 +84,6 @@ local function playLand()
     end
 end
 
--- Game modes
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 local gameModes = {}
 
@@ -184,7 +183,6 @@ local function createGui()
         modeButton.Text = "Mode: " .. gameModes[currentModeIndex]
     end)
 
-    -- Mobile grenade button
     if isMobile then
         local grenadeButton = Instance.new("TextButton", g)
         grenadeButton.Size = UDim2.new(0, 80, 0, 80)
@@ -200,10 +198,9 @@ local function createGui()
         corner.CornerRadius = UDim.new(0.5, 0)
 
         grenadeButton.MouseButton1Click:Connect(function()
-            -- Проверка режима для гранат
             local currentMode = gameModes[currentModeIndex]
             if currentMode == "no grenades (mobile)" or currentMode == "hard (mobile)" then
-                return  -- Гранаты отключены в этих режимах
+                return
             end
             
             if not scriptEnabled then return end
@@ -282,7 +279,6 @@ local function createGui()
             game.Debris:AddItem(rocket, 5)
         end)
         
-        -- Mobile jump button
         local jumpButton = Instance.new("TextButton", g)
         jumpButton.Size = UDim2.new(0, 80, 0, 80)
         jumpButton.Position = UDim2.new(1, -90, 1, -90)
@@ -327,9 +323,7 @@ task.spawn(function()
     end
 end)
 
--- Mobile jump state tracking
 if isMobile then
-    -- Removed automatic jump detection - now using manual button only
 end
 
 local function grounded()
@@ -404,15 +398,12 @@ local function process(dt)
 
     local input = Vector3.new()
 
-    -- Input handling for PC and Mobile
     if isMobile then
-        -- Mobile: use MoveDirection from humanoid
         local moveVector = humanoid.MoveDirection
         if moveVector.Magnitude > 0 then
             input = moveVector
         end
     else
-        -- PC: keyboard input
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then input += fwd end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then input -= fwd end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then input -= right end
@@ -425,10 +416,9 @@ local function process(dt)
 
     moveDir = input
 
-    -- Adjust max air speed for hard mode
     local currentMaxAirSpeed = cfg.maxAirSpeed
     if gameModes[currentModeIndex] == "hard (PC)" or gameModes[currentModeIndex] == "hard (mobile)" then
-        currentMaxAirSpeed = cfg.maxAirSpeed * 0.5  -- Половина максимальной скорости в воздухе
+        currentMaxAirSpeed = cfg.maxAirSpeed * 0.3
     end
 
     if isGrounded then
@@ -463,11 +453,10 @@ UserInputService.InputBegan:Connect(function(i)
     if i.KeyCode == Enum.KeyCode.Space then
         spaceHeld = true
     elseif i.KeyCode == Enum.KeyCode.X and scriptEnabled and not isMobile then
-        -- Проверка режима для гранат
         local currentMode = gameModes[currentModeIndex]
         if currentMode == "no grenades (PC)" or currentMode == "no grenades (mobile)" or 
            currentMode == "hard (PC)" or currentMode == "hard (mobile)" then
-            return  -- Гранаты отключены в этих режимах
+            return
         end
         
         local cam = workspace.CurrentCamera
