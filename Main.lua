@@ -31,38 +31,85 @@ local cfg = {
     runSpeed = 23,
     jumpPower = 26,
     gravity = 80,
-    friction = 6,
+    friction = 4,
     stopSpeed = 5,
 }
 
 local rocketBlastRadius = 25
 
 local footstepSounds = {
-    "rbxassetid://81623756670923",
-    "rbxassetid://78754179999047",
-    "rbxassetid://79418255155423",
-    "rbxassetid://112240321395589",
+    Slate = {
+        "rbxassetid://81623756670923",
+        "rbxassetid://78754179999047",
+        "rbxassetid://79418255155423",
+        "rbxassetid://112240321395589",
+    },
+    Grass = {
+        "rbxassetid://105277634319381",
+        "rbxassetid://98069158661569",
+        "rbxassetid://135182192451997",
+        "rbxassetid://116425333836106",
+    },
+    Wood = {
+        "rbxassetid://87921439933530",
+        "rbxassetid://89597871459985",
+        "rbxassetid://139932856876296",
+        "rbxassetid://75643573822739",
+    },
+    WoodPlanks = {
+        "rbxassetid://87921439933530",
+        "rbxassetid://89597871459985",
+        "rbxassetid://139932856876296",
+        "rbxassetid://75643573822739",
+    },
+    Metal = {
+        "rbxassetid://78580994772675",
+        "rbxassetid://79005288283137",
+        "rbxassetid://98060045106272",
+        "rbxassetid://122668036980895",
+    },
+    Sand = {
+        "rbxassetid://84209465430801",
+        "rbxassetid://115151668857364",
+        "rbxassetid://93919782627384",
+        "rbxassetid://105793766638092",
+    },
+    Air = {
+        "",
+    },
 }
 
-local jumpSound = Instance.new("Sound", root)
-jumpSound.SoundId = "rbxassetid://78754179999047"
-jumpSound.Volume = 0.5
-jumpSound.PlaybackSpeed = 1
-
-local landSound = Instance.new("Sound", root)
-landSound.SoundId = "rbxassetid://78754179999047"
-landSound.Volume = 0.6
-landSound.PlaybackSpeed = 1
+local function getFloorMaterial()
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {character}
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local result = workspace:Raycast(root.Position, Vector3.new(0, -3.8, 0), rayParams)
+    
+    if result and result.Instance then
+        local floorMaterial = result.Instance.Material.Name
+        
+        if footstepSounds[floorMaterial] then
+            return floorMaterial
+        else
+            return "Slate"
+        end
+    end
+    
+    return "Slate"
+end
 
 local function playFootstep()
+    local material = getFloorMaterial()
+    local soundTable = footstepSounds[material]
     local sound = Instance.new("Sound", workspace)
     
     lastFootstepIndex = lastFootstepIndex + 1
-    if lastFootstepIndex > #footstepSounds then
+    if lastFootstepIndex > #soundTable then
         lastFootstepIndex = 1
     end
     
-    sound.SoundId = footstepSounds[lastFootstepIndex]
+    sound.SoundId = soundTable[lastFootstepIndex]
     sound.Volume = 0.6
     sound.PlaybackSpeed = 1.0 + math.random(-10, 10) / 100
     sound:Play()
@@ -71,16 +118,32 @@ local function playFootstep()
 end
 
 local function playJump()
-    if jumpSound then
-        jumpSound:Stop()
-        jumpSound:Play()
+    local material = getFloorMaterial()
+    local soundTable = footstepSounds[material]
+    
+    if #soundTable > 0 and soundTable[1] ~= "" then
+        local sound = Instance.new("Sound", workspace)
+        local randomIndex = math.random(1, #soundTable)
+        sound.SoundId = soundTable[randomIndex]
+        sound.Volume = 01
+        sound.PlaybackSpeed = 1.0 + math.random(-5, 5) / 100
+        sound:Play()
+        game:GetService("Debris"):AddItem(sound, 2)
     end
 end
 
 local function playLand()
-    if landSound then
-        landSound:Stop()
-        landSound:Play()
+    local material = getFloorMaterial()
+    local soundTable = footstepSounds[material]
+    
+    if #soundTable > 0 and soundTable[1] ~= "" then
+        local sound = Instance.new("Sound", workspace)
+        local randomIndex = math.random(1, #soundTable)
+        sound.SoundId = soundTable[randomIndex]
+        sound.Volume = 1.0
+        sound.PlaybackSpeed = 1.0 + math.random(-5, 5) / 100
+        sound:Play()
+        game:GetService("Debris"):AddItem(sound, 2)
     end
 end
 
@@ -309,7 +372,7 @@ task.spawn(function()
         task.wait()
         if scriptEnabled then
             for _, sound in pairs(root:GetChildren()) do
-                if sound:IsA("Sound") and sound ~= jumpSound and sound ~= landSound then
+                if sound:IsA("Sound") then
                     sound.Volume = 0
                 end
             end
@@ -322,9 +385,6 @@ task.spawn(function()
         end
     end
 end)
-
-if isMobile then
-end
 
 local function grounded()
     local rayParams = RaycastParams.new()
@@ -377,7 +437,7 @@ local function process(dt)
     wasGrounded = isGrounded
     isGrounded = grounded()
 
-    if isGrounded and not wasGrounded and velocity.Y < -5 then
+    if isGrounded and not wasGrounded and velocity.Y < -5 and not spaceHeld then
         playLand()
         footstepTimer = 0
     end
@@ -551,16 +611,6 @@ player.CharacterAdded:Connect(function(char)
     humanoid = char:WaitForChild("Humanoid")
     root = char:WaitForChild("HumanoidRootPart")
     velocity = Vector3.new()
-    
-    jumpSound = Instance.new("Sound", root)
-    jumpSound.SoundId = "rbxassetid://78754179999047"
-    jumpSound.Volume = 0.5
-    jumpSound.PlaybackSpeed = 1.2
-    
-    landSound = Instance.new("Sound", root)
-    landSound.SoundId = "rbxassetid://78754179999047"
-    landSound.Volume = 0.6
-    landSound.PlaybackSpeed = 0.8
 end)
 
 print("Source Movement successfully Loaded")
