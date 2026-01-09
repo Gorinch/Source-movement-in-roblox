@@ -74,6 +74,18 @@ local footstepSounds = {
         "rbxassetid://93919782627384",
         "rbxassetid://105793766638092",
     },
+    Plastic = {
+        "rbxassetid://135712042029119",
+        "rbxassetid://90507702118699",
+        "rbxassetid://98172042741214",
+        "rbxassetid://106319783012941",
+    },
+    SmoothPlastic = {
+        "rbxassetid://135712042029119",
+        "rbxassetid://90507702118699",
+        "rbxassetid://98172042741214",
+        "rbxassetid://106319783012941",
+    },
     Air = {
         "",
     },
@@ -551,7 +563,7 @@ UserInputService.InputBegan:Connect(function(i)
         
         local explodeSound = Instance.new("Sound")
         explodeSound.SoundId = "rbxassetid://90586353104830"
-        explodeSound.Volume = 1.0
+        explodeSound.Volume = 0.2
         explodeSound.PlaybackSpeed = 1
         
         local shootSound = Instance.new("Sound", root)
